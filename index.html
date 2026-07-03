@@ -25,11 +25,19 @@
 
   <main class="wrap">
     <div class="toolbar no-print">
-      <div class="field">
+      <div class="view-toggle" id="modeToggle">
+        <button data-mode="cardapio" class="active">📋 Por cardápio</button>
+        <button data-mode="dia">📅 Por dia</button>
+      </div>
+      <div class="field" id="fieldCardapio">
         <label for="selCardapio">Cardápio</label>
         <select id="selCardapio"><option>Carregando…</option></select>
       </div>
-      <div class="field">
+      <div class="field hidden" id="fieldDia">
+        <label for="selDia">Dia</label>
+        <select id="selDia"></select>
+      </div>
+      <div class="field" id="fieldEscola">
         <label for="txtEscola">Buscar escola</label>
         <input type="text" id="txtEscola" list="listaEscolas" placeholder="Digite o nome da escola…" />
         <datalist id="listaEscolas"></datalist>
