@@ -5,6 +5,9 @@
 -- Pode ser re-executado quantas vezes quiser (é idempotente).
 -- =============================================================================
 
+-- Trabalha dentro do schema dedicado
+set search_path to nutricao, public;
+
 -- -----------------------------------------------------------------------------
 -- Tipos de refeição (momentos do dia)
 -- -----------------------------------------------------------------------------
@@ -83,7 +86,8 @@ on conflict do nothing;
 create or replace function seed_add_refeicao(
   p_cardapio text, p_tipo text, p_data date,
   p_itens text[], p_obs text default null, p_facultativo boolean default false
-) returns void language plpgsql as $$
+) returns void language plpgsql
+set search_path = nutricao, public as $$
 declare
   v_card uuid; v_tipo uuid; v_ref uuid; v_item uuid; v_nome text; v_ord int := 0;
 begin

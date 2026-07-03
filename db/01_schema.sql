@@ -5,6 +5,15 @@
 -- Execute este arquivo no Supabase: Dashboard > SQL Editor > New query > Run.
 -- Depois execute o 02_seed.sql para popular com os dados de exemplo (JUNHO 2026).
 -- =============================================================================
+-- ORGANIZAÇÃO: todo o sistema fica no schema "nutricao" (e não no "public").
+-- Para renomear o schema, troque "nutricao" aqui, no 02_seed.sql e no config.js.
+-- IMPORTANTE (Supabase): depois de rodar, exponha o schema para a API em
+--   Project Settings > API > "Exposed schemas" -> adicione: nutricao
+-- =============================================================================
+
+-- Cria o schema dedicado e passa a trabalhar dentro dele.
+create schema if not exists nutricao;
+set search_path to nutricao, public;
 
 -- Extensão para UUIDs (já vem habilitada no Supabase, mas garantimos)
 create extension if not exists "pgcrypto";
@@ -213,5 +222,9 @@ comment on view vw_cardapio_completo is 'Refeições com itens concatenados, pro
 -- GRANTS para as roles da API do Supabase
 -- (por enquanto sem controle de acesso: anon pode ler e gravar)
 -- =============================================================================
-grant usage on schema public to anon, authenticated;
-grant select, insert, update, delete on all tables in schema public to anon, authenticated;
+grant usage on schema nutricao to anon, authenticated;
+grant select, insert, update, delete on all tables in schema nutricao to anon, authenticated;
+
+-- Novas tabelas/views criadas depois também já entram liberadas
+alter default privileges in schema nutricao
+  grant select, insert, update, delete on tables to anon, authenticated;

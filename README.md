@@ -29,17 +29,30 @@ saelm/
 
 1. Crie uma conta e um projeto em **https://supabase.com** (plano gratuito serve).
 2. No projeto, abra **SQL Editor → New query**.
-3. Cole e execute o conteúdo de [`db/01_schema.sql`](db/01_schema.sql) (cria as tabelas e as regras de segurança).
+3. Cole e execute o conteúdo de [`db/01_schema.sql`](db/01_schema.sql) — ele cria o schema
+   **`nutricao`**, as tabelas e as regras de segurança.
 4. Abra outra query, cole e execute [`db/02_seed.sql`](db/02_seed.sql) (popula com os cardápios I–VIII da semana de exemplo).
 
-## 2) Pegar as chaves de API
+> Todo o sistema fica no schema **`nutricao`** (não no `public`), para manter o banco organizado.
+
+## 2) Expor o schema para a API
+
+Como o sistema usa um schema próprio, é preciso liberá-lo na API:
+
+1. Vá em **Project Settings → API → Data API** (ou "API Settings").
+2. Em **Exposed schemas**, adicione **`nutricao`** e salve.
+
+Sem esse passo, o `supabase-js` retorna erro de "schema must be one of the following".
+
+## 3) Pegar as chaves de API
 
 Em **Project Settings → API**, copie:
 
 - **Project URL** (ex.: `https://xxxx.supabase.co`)
 - **anon public** key
 
-Abra [`assets/js/config.js`](assets/js/config.js) e cole nos campos `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
+Abra [`assets/js/config.js`](assets/js/config.js) e confira:
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SCHEMA` (já vem como `"nutricao"`).
 
 > A chave **anon** é pública por natureza (fica visível no navegador).
 > **Nunca** use aqui a chave `service_role`.
@@ -48,7 +61,7 @@ Abra [`assets/js/config.js`](assets/js/config.js) e cole nos campos `SUPABASE_UR
 > liberadas para leitura **e** escrita pela chave anônima — ou seja, qualquer pessoa com o
 > link de `gerenciar.html` pode editar. Para proteger depois, veja "Ativar login" abaixo.
 
-## 3) Publicar no GitHub Pages
+## 4) Publicar no GitHub Pages
 
 1. Faça commit e push deste repositório para o GitHub.
 2. No repositório: **Settings → Pages**.

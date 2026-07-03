@@ -14,6 +14,10 @@ window.SAELM_CONFIG = {
   SUPABASE_URL: "https://SEU-PROJETO.supabase.co",
   SUPABASE_ANON_KEY: "SUA-CHAVE-ANON-PUBLICA",
 
+  // Schema onde o sistema vive (deve bater com os .sql e estar exposto na API).
+  // No Supabase: Project Settings > API > "Exposed schemas" -> adicionar "nutricao".
+  SUPABASE_SCHEMA: "nutricao",
+
   // Mês/ano exibido no cabeçalho da apresentação
   MES_REFERENCIA: "Junho / Julho 2026",
 };

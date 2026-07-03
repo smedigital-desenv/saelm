@@ -12,7 +12,9 @@ const configurado =
 export const isConfigured = configurado;
 
 export const supabase = configurado
-  ? createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY)
+  ? createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+      db: { schema: cfg.SUPABASE_SCHEMA || "public" },
+    })
   : null;
 
 // Formata "2026-06-29" -> { dia: "29", semana: "Segunda-feira", curto: "29/06" }
