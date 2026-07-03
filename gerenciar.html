@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerenciar Cardápio — SAELM</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <div class="brand">
+        <div class="logo">⚙️</div>
+        <div>
+          <h1>Gerenciar Cardápio</h1>
+          <p>Painel administrativo — SAELM</p>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <a class="link-admin" href="index.html">👁️ Ver apresentação</a>
+    </div>
+  </header>
+
+  <!-- LOGIN -->
+  <div id="loginView" class="login-wrap hidden">
+    <div class="card-box">
+      <div class="logo-big">🔒</div>
+      <h3>Acesso administrativo</h3>
+      <p class="muted">Entre com um usuário cadastrado no Supabase (Authentication).</p>
+      <div class="form-row"><input type="email" id="loginEmail" placeholder="email@exemplo.com" /></div>
+      <div class="form-row"><input type="password" id="loginSenha" placeholder="senha" /></div>
+      <button class="btn" id="btnEntrar" style="width:100%; justify-content:center;">Entrar</button>
+      <p class="muted" id="loginErro" style="color:#b42318; margin-top:10px;"></p>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <main class="wrap hidden" id="appView">
+    <div class="tabs">
+      <button data-tab="refeicoes" class="active">🍽️ Refeições por dia</button>
+      <button data-tab="cardapios">📋 Cardápios & Escolas</button>
+      <button data-tab="itens">🥕 Catálogo de itens</button>
+    </div>
+
+    <!-- ===================== PAINEL: REFEIÇÕES ===================== -->
+    <section class="panel active" id="panel-refeicoes">
+      <div class="toolbar">
+        <div class="field">
+          <label for="rCardapio">Cardápio</label>
+          <select id="rCardapio"></select>
+        </div>
+        <div class="field">
+          <label for="rData">Dia</label>
+          <input type="date" id="rData" />
+        </div>
+        <div class="spacer"></div>
+        <button class="btn secondary" id="btnCopiarDia" title="Copiar as refeições de outro dia">⧉ Copiar de…</button>
+      </div>
+      <p class="muted" id="rDica">Selecione um cardápio e um dia para editar as refeições. As alterações salvam automaticamente.</p>
+      <div class="editor-grid" id="editorRefeicoes"></div>
+    </section>
+
+    <!-- ===================== PAINEL: CARDÁPIOS & ESCOLAS ===================== -->
+    <section class="panel" id="panel-cardapios">
+      <div class="grid-2">
+        <div class="card-box">
+          <h3 id="cardTituloForm">Novo cardápio</h3>
+          <input type="hidden" id="cId" />
+          <div class="form-row"><label>Número/Código</label><input type="text" id="cNumero" placeholder="Ex: I, II, VIII" /></div>
+          <div class="form-row"><label>Título</label><input type="text" id="cTitulo" placeholder="Ex: EMEF Parcial" /></div>
+          <div class="form-row"><label>Público-alvo</label><input type="text" id="cPublico" placeholder="Ex: 6 a 10 anos" /></div>
+          <div class="form-row"><label>Percentual</label><input type="text" id="cPercentual" placeholder="Ex: Parcial 30%" /></div>
+          <div class="form-row"><label>Ordem</label><input type="number" id="cOrdem" value="0" /></div>
+          <div class="form-row"><label>Observações</label><textarea id="cObs" rows="2"></textarea></div>
+          <div class="form-actions">
+            <button class="btn" id="btnSalvarCardapio">Salvar</button>
+            <button class="btn ghost hidden" id="btnNovoCardapio">Cancelar edição</button>
+          </div>
+        </div>
+        <div class="card-box">
+          <h3>Cardápios cadastrados</h3>
+          <table class="data-table"><tbody id="tbCardapios"></tbody></table>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:22px;">
+        <div class="card-box">
+          <h3 id="escTituloForm">Nova escola</h3>
+          <input type="hidden" id="eId" />
+          <div class="form-row"><label>Nome</label><input type="text" id="eNome" placeholder="Nome da unidade" /></div>
+          <div class="form-row"><label>Tipo</label><input type="text" id="eTipo" placeholder="EMEF, EMEI, CEI…" /></div>
+          <div class="form-row"><label>Cardápios vinculados</label><div id="eVinculos" class="muted" style="font-size:.85rem;"></div></div>
+          <div class="form-actions">
+            <button class="btn" id="btnSalvarEscola">Salvar</button>
+            <button class="btn ghost hidden" id="btnNovaEscola">Cancelar edição</button>
+          </div>
+        </div>
+        <div class="card-box">
+          <h3>Escolas cadastradas</h3>
+          <table class="data-table"><tbody id="tbEscolas"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PAINEL: ITENS ===================== -->
+    <section class="panel" id="panel-itens">
+      <div class="grid-2">
+        <div class="card-box">
+          <h3 id="itTituloForm">Novo item / preparação</h3>
+          <input type="hidden" id="iId" />
+          <div class="form-row"><label>Nome</label><input type="text" id="iNome" placeholder="Ex: Arroz integral" /></div>
+          <div class="form-row"><label>Categoria</label><select id="iCategoria"></select></div>
+          <div class="form-row"><label>Descrição (opcional)</label><textarea id="iDescricao" rows="2"></textarea></div>
+          <div class="form-actions">
+            <button class="btn" id="btnSalvarItem">Salvar</button>
+            <button class="btn ghost hidden" id="btnNovoItem">Cancelar edição</button>
+          </div>
+        </div>
+        <div class="card-box">
+          <h3>Catálogo (<span id="itCount">0</span>)</h3>
+          <div class="form-row"><input type="text" id="itBusca" placeholder="🔎 Filtrar itens…" /></div>
+          <table class="data-table"><tbody id="tbItens"></tbody></table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <script src="assets/js/config.js"></script>
+  <script type="module" src="assets/js/gerenciar.js"></script>
+</body>
+</html>

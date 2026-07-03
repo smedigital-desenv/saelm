@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cardápio Escolar — Gerência de Nutrição Escolar</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍎</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <div class="brand">
+        <div class="logo">🍎</div>
+        <div>
+          <h1>Cardápio Escolar</h1>
+          <p>Gerência de Nutrição Escolar</p>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <span class="badge" id="badgeMes">—</span>
+      <a class="link-admin" href="gerenciar.html">⚙️ Gerenciar</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="toolbar no-print">
+      <div class="field">
+        <label for="selCardapio">Cardápio</label>
+        <select id="selCardapio"><option>Carregando…</option></select>
+      </div>
+      <div class="field">
+        <label for="txtEscola">Buscar escola</label>
+        <input type="text" id="txtEscola" list="listaEscolas" placeholder="Digite o nome da escola…" />
+        <datalist id="listaEscolas"></datalist>
+      </div>
+      <div class="spacer"></div>
+      <div class="view-toggle" id="viewToggle">
+        <button data-view="grade" class="active">▦ Grade</button>
+        <button data-view="cards">▤ Cards</button>
+      </div>
+      <button class="btn secondary" id="btnImprimir">🖨️ Imprimir</button>
+    </div>
+
+    <div id="cardapioHead"></div>
+    <div id="conteudo"><div class="notice">Carregando cardápio…</div></div>
+
+    <div class="legend no-print" id="legenda"></div>
+  </main>
+
+  <footer class="rodape">
+    Os gêneros alimentícios poderão ser alterados por questões de entrega, maturação ou temperatura,
+    conforme orientação/autorização da DNE. · SAELM — Sistema de Apresentação de Cardápio
+  </footer>
+
+  <div id="toast"></div>
+
+  <script src="assets/js/config.js"></script>
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
