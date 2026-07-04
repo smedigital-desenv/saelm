@@ -2,18 +2,22 @@
    SAELM - estilos compartilhados
    ========================================================================= */
 :root {
-  --verde:        #2f7d51;
-  --verde-claro:  #4f9d69;
-  --verde-bg:     #eef6f0;
+  --azul:        #2563eb;   /* azul primário (blue-600) */
+  --azul-claro:  #3b82f6;   /* azul mais claro */
+  --azul-escuro: #1e40af;   /* azul profundo para textos/realces */
+  --azul-bg:     #eaf1ff;   /* tinta suave para chips/realces */
+  --indigo:      #4f46e5;   /* início do gradiente */
+  --ciano:       #06b6d4;   /* destaque jovem */
   --amarelo:      #f2b705;
-  --tinta:        #1e2a24;
-  --cinza:        #667085;
-  --cinza-claro:  #e4e8ea;
+  --tinta:        #101828;
+  --cinza:        #64748b;
+  --cinza-claro:  #e2e8f0;
   --branco:       #ffffff;
-  --fundo:        #f6f8f7;
-  --radius:       14px;
-  --sombra:       0 1px 3px rgba(16,24,40,.08), 0 6px 18px rgba(16,24,40,.06);
-  --sombra-ff:    0 10px 40px rgba(16,24,40,.18);
+  --fundo:        #f3f6fc;
+  --radius:       16px;
+  --sombra:       0 1px 3px rgba(30,58,138,.08), 0 8px 24px rgba(30,58,138,.08);
+  --sombra-ff:    0 12px 44px rgba(30,58,138,.22);
+  --grad:         linear-gradient(120deg, var(--indigo) 0%, var(--azul) 55%, var(--ciano) 130%);
   --fonte: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -27,14 +31,14 @@ body {
   line-height: 1.5;
 }
 
-a { color: var(--verde); }
+a { color: var(--azul); }
 
 /* ---------- Cabeçalho ---------- */
 .topbar {
-  background: linear-gradient(120deg, var(--verde) 0%, var(--verde-claro) 100%);
+  background: var(--grad);
   color: #fff;
   padding: 18px 0;
-  box-shadow: var(--sombra);
+  box-shadow: 0 6px 22px rgba(37,99,235,.28);
 }
 .topbar .wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 12px; }
@@ -70,7 +74,7 @@ select, input[type="text"], input[type="date"], input[type="email"], input[type=
   padding: 9px 12px; border: 1px solid var(--cinza-claro); border-radius: 10px;
   background: #fff; min-width: 200px;
 }
-select:focus, input:focus, textarea:focus { outline: 2px solid var(--verde-claro); outline-offset: 1px; }
+select:focus, input:focus, textarea:focus { outline: 2px solid var(--azul-claro); outline-offset: 1px; }
 .toolbar .spacer { flex: 1; }
 
 .view-toggle { display: inline-flex; background: #fff; border: 1px solid var(--cinza-claro); border-radius: 10px; overflow: hidden; }
@@ -78,28 +82,28 @@ select:focus, input:focus, textarea:focus { outline: 2px solid var(--verde-claro
   border: 0; background: transparent; padding: 9px 14px; cursor: pointer;
   font-weight: 600; font-size: .9rem; color: var(--cinza);
 }
-.view-toggle button.active { background: var(--verde); color: #fff; }
+.view-toggle button.active { background: var(--azul); color: #fff; }
 
 .btn {
   font-family: inherit; font-weight: 600; font-size: .9rem; cursor: pointer;
   border: 1px solid transparent; border-radius: 10px; padding: 9px 16px;
-  background: var(--verde); color: #fff; display: inline-flex; align-items: center; gap: 7px;
+  background: var(--azul); color: #fff; display: inline-flex; align-items: center; gap: 7px;
 }
 .btn:hover { filter: brightness(1.05); }
 .btn.secondary { background: #fff; color: var(--tinta); border-color: var(--cinza-claro); }
-.btn.ghost { background: transparent; color: var(--verde); border-color: transparent; }
+.btn.ghost { background: transparent; color: var(--azul); border-color: transparent; }
 .btn.danger { background: #d64545; }
 .btn.small { padding: 6px 11px; font-size: .82rem; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
 /* ---------- Cabeçalho do cardápio selecionado ---------- */
 .cardapio-head {
-  background: #fff; border: 1px solid var(--cinza-claro); border-left: 6px solid var(--verde);
+  background: #fff; border: 1px solid var(--cinza-claro); border-left: 6px solid var(--azul);
   border-radius: var(--radius); padding: 16px 20px; margin: 6px 0 20px; box-shadow: var(--sombra);
 }
 .cardapio-head h2 { margin: 0 0 4px; font-size: 1.15rem; }
 .cardapio-head .meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: .82rem; color: var(--cinza); }
-.chip { background: var(--verde-bg); color: var(--verde); border-radius: 999px; padding: 3px 10px; font-weight: 600; }
+.chip { background: var(--azul-bg); color: var(--azul); border-radius: 999px; padding: 3px 10px; font-weight: 600; }
 .cardapio-head .obs { margin: 10px 0 0; font-size: .82rem; color: var(--cinza); font-style: italic; }
 
 /* ---------- GRADE (tabela) ---------- */
@@ -113,10 +117,10 @@ table.grade thead th {
 }
 table.grade thead th .horario { display: block; font-weight: 500; opacity: .9; text-transform: none; letter-spacing: 0; font-size: .82em; }
 table.grade tbody th {
-  background: var(--verde-bg); text-align: left; min-width: 120px;
+  background: var(--azul-bg); text-align: left; min-width: 120px;
   position: sticky; left: 0; z-index: 1;
 }
-.dia-num { font-size: 1.35rem; font-weight: 800; color: var(--verde); line-height: 1; }
+.dia-num { font-size: 1.35rem; font-weight: 800; color: var(--azul); line-height: 1; }
 .dia-semana { font-size: .78rem; color: var(--cinza); }
 table.grade td { font-size: .9rem; }
 table.grade td .fac { color: var(--cinza); font-style: italic; }
@@ -128,7 +132,7 @@ table.grade td li { margin: 1px 0; }
 .day-card { background: #fff; border-radius: var(--radius); box-shadow: var(--sombra); overflow: hidden; border: 1px solid var(--cinza-claro); }
 .day-card .head {
   display: flex; align-items: center; gap: 12px; padding: 14px 18px;
-  background: linear-gradient(120deg, var(--verde) 0%, var(--verde-claro) 100%); color: #fff;
+  background: var(--grad); color: #fff;
 }
 .day-card .head .n { font-size: 1.8rem; font-weight: 800; line-height: 1; }
 .day-card .head .s small { display: block; opacity: .85; font-size: .75rem; }
@@ -162,7 +166,7 @@ footer.rodape { text-align: center; color: var(--cinza); font-size: .8rem; paddi
   font-weight: 700; font-size: .92rem; color: var(--cinza);
   border-bottom: 3px solid transparent; margin-bottom: -2px;
 }
-.tabs button.active { color: var(--verde); border-bottom-color: var(--verde); }
+.tabs button.active { color: var(--azul); border-bottom-color: var(--azul); }
 
 .panel { display: none; }
 .panel.active { display: block; }
@@ -180,16 +184,16 @@ footer.rodape { text-align: center; color: var(--cinza); font-size: .8rem; paddi
 .data-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .data-table th, .data-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--cinza-claro); }
 .data-table th { font-size: .72rem; text-transform: uppercase; color: var(--cinza); letter-spacing: .04em; }
-.data-table tr:hover td { background: var(--verde-bg); }
+.data-table tr:hover td { background: var(--azul-bg); }
 .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
-.tag { display: inline-block; background: var(--verde-bg); color: var(--verde); font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.tag { display: inline-block; background: var(--azul-bg); color: var(--azul); font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
 
 /* editor de refeição por dia */
 .editor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap: 14px; margin-top: 16px; }
 .meal-edit { border: 1px solid var(--cinza-claro); border-radius: 12px; overflow: hidden; }
 .meal-edit .me-head { padding: 8px 12px; color: #fff; font-weight: 700; font-size: .82rem; display: flex; justify-content: space-between; align-items: center; }
 .meal-edit .me-body { padding: 10px 12px; }
-.chip-item { display: inline-flex; align-items: center; gap: 6px; background: var(--verde-bg); color: var(--verde); border-radius: 999px; padding: 3px 6px 3px 10px; font-size: .82rem; margin: 0 5px 5px 0; }
+.chip-item { display: inline-flex; align-items: center; gap: 6px; background: var(--azul-bg); color: var(--azul); border-radius: 999px; padding: 3px 6px 3px 10px; font-size: .82rem; margin: 0 5px 5px 0; }
 .chip-item button { border: 0; background: rgba(0,0,0,.08); border-radius: 50%; width: 16px; height: 16px; line-height: 1; cursor: pointer; color: var(--tinta); }
 .add-item-row { display: flex; gap: 6px; margin-top: 8px; }
 .add-item-row input { flex: 1; }

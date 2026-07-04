@@ -199,7 +199,7 @@ function renderGrade() {
   const dts = datasDoCardapio();
 
   const thead = `<thead><tr>
-    <th style="background:var(--verde)">Dia</th>
+    <th style="background:var(--azul)">Dia</th>
     ${tipos.map((t) => `<th style="background:${t.cor}">${escapeHtml(t.nome)}<span class="horario">${escapeHtml(t.horario || "")}</span></th>`).join("")}
   </tr></thead>`;
 

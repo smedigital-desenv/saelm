@@ -12,15 +12,15 @@ set search_path to nutricao, public;
 -- Tipos de refeição (momentos do dia)
 -- -----------------------------------------------------------------------------
 insert into tipos_refeicao (nome, horario, ordem, cor) values
-  ('Desjejum',        'a partir das 6h45',  1, '#f2b705'),
-  ('Colação',         '9h30 / 10h30',       2, '#f4845f'),
-  ('Lanche da Manhã', 'a partir das 9h',    3, '#f78154'),
-  ('Almoço',          'a partir das 11h30', 4, '#4f9d69'),
-  ('Leite',           '13h30 / 14h30',      5, '#6fb1d6'),
-  ('Lanche da Tarde', 'a partir das 15h',   6, '#b07bac'),
-  ('Sobremesa',       'após o almoço',      7, '#e26d9c'),
-  ('Fruta',           'a partir das 17h',   8, '#e05263'),
-  ('Jantar',          'a partir das 18h45', 9, '#3b6ea5')
+  ('Desjejum',        'a partir das 6h45',  1, '#6366f1'),
+  ('Colação',         '9h30 / 10h30',       2, '#0ea5e9'),
+  ('Lanche da Manhã', 'a partir das 9h',    3, '#06b6d4'),
+  ('Almoço',          'a partir das 11h30', 4, '#2563eb'),
+  ('Leite',           '13h30 / 14h30',      5, '#22d3ee'),
+  ('Lanche da Tarde', 'a partir das 15h',   6, '#8b5cf6'),
+  ('Sobremesa',       'após o almoço',      7, '#ec4899'),
+  ('Fruta',           'a partir das 17h',   8, '#14b8a6'),
+  ('Jantar',          'a partir das 18h45', 9, '#4f46e5')
 on conflict (nome) do update set horario = excluded.horario, ordem = excluded.ordem, cor = excluded.cor;
 
 -- -----------------------------------------------------------------------------
