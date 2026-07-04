@@ -259,14 +259,15 @@ table.grade td.clickable:hover { background: #f6f9ff; }
 }
 .modal-head h3 { margin: 0; font-size: 1.3rem; font-weight: 900; }
 
-.modal-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-.prato { border-radius: 18px; overflow: hidden; background: #f6f9ff; box-shadow: var(--sombra); }
-.prato-foto {
-  aspect-ratio: 4 / 3; background-size: cover; background-position: center;
+.modal-gallery { display: block; }
+.prato-hero {
+  width: 100%; aspect-ratio: 16 / 10; border-radius: 20px; overflow: hidden;
+  background-size: cover; background-position: center; box-shadow: var(--sombra);
   display: grid; place-items: center;
 }
-.prato-foto.sem { font-size: 2.6rem; }
-.prato-nome { padding: 10px 12px; font-size: .88rem; font-weight: 800; text-align: center; }
+.prato-hero.sem { font-size: 4rem; }
+.modal-itens { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.modal-itens .ichip { font-size: .92rem; padding: 6px 15px; }
 
 /* ---------- Foto no editor de item ---------- */
 .foto-edit { display: flex; gap: 12px; align-items: flex-start; }

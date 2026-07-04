@@ -25,12 +25,10 @@
     </div>
   </header>
 
-  <!-- LOGIN -->
   <div id="loginView" class="login-wrap hidden">
     <div class="card-box">
       <div class="logo-big">🔒</div>
       <h3>Acesso administrativo</h3>
-      <p class="muted">Entre com um usuário cadastrado no Supabase (Authentication).</p>
       <div class="form-row"><input type="email" id="loginEmail" placeholder="email@exemplo.com" /></div>
       <div class="form-row"><input type="password" id="loginSenha" placeholder="senha" /></div>
       <button class="btn" id="btnEntrar" style="width:100%; justify-content:center;">Entrar</button>
@@ -38,33 +36,81 @@
     </div>
   </div>
 
-  <!-- APP -->
   <main class="wrap hidden" id="appView">
     <div class="tabs">
-      <button data-tab="refeicoes" class="active">🍽️ Refeições por dia</button>
-      <button data-tab="cardapios">📋 Cardápios & Escolas</button>
+      <button data-tab="montar" class="active">🗓️ Montar o dia</button>
+      <button data-tab="combinacoes">🍽️ Combinações</button>
+      <button data-tab="cardapios">📋 Cardápios &amp; Escolas</button>
       <button data-tab="itens">🥕 Catálogo de itens</button>
     </div>
 
-    <!-- ===================== PAINEL: REFEIÇÕES ===================== -->
-    <section class="panel active" id="panel-refeicoes">
+    <!-- ===================== MONTAR O DIA ===================== -->
+    <section class="panel active" id="panel-montar">
       <div class="toolbar">
-        <div class="field">
-          <label for="rCardapio">Cardápio</label>
-          <select id="rCardapio"></select>
+        <div class="field"><label for="mData">Dia</label><input type="date" id="mData" /></div>
+        <div class="field"><label for="mTipo">Refeição</label><select id="mTipo"></select></div>
+        <div class="field" style="flex:1; min-width:260px;">
+          <label for="mCombo">Combinação a aplicar</label><select id="mCombo"></select>
         </div>
-        <div class="field">
-          <label for="rData">Dia</label>
-          <input type="date" id="rData" />
-        </div>
-        <div class="spacer"></div>
-        <button class="btn secondary" id="btnCopiarDia" title="Copiar as refeições de outro dia">⧉ Copiar de…</button>
       </div>
-      <p class="muted" id="rDica">Selecione um cardápio e um dia para editar as refeições. As alterações salvam automaticamente.</p>
-      <div class="editor-grid" id="editorRefeicoes"></div>
+      <p class="muted">Escolha o <strong>dia</strong> e a <strong>refeição</strong>, selecione a <strong>combinação</strong> e marque em quais cardápios aplicar. Sem combinação na lista? Crie na aba <em>Combinações</em>.</p>
+      <div class="card-box">
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center;">
+          <button class="btn small secondary" id="mTodos">Marcar todos</button>
+          <button class="btn small secondary" id="mNenhum">Desmarcar</button>
+          <div class="spacer" style="flex:1;"></div>
+          <button class="btn small danger" id="mRemover">🗑️ Remover dos marcados</button>
+          <button class="btn small" id="mAplicar">✓ Aplicar combinação</button>
+        </div>
+        <table class="data-table"><tbody id="mLista"></tbody></table>
+      </div>
     </section>
 
-    <!-- ===================== PAINEL: CARDÁPIOS & ESCOLAS ===================== -->
+    <!-- ===================== COMBINAÇÕES ===================== -->
+    <section class="panel" id="panel-combinacoes">
+      <div class="grid-2">
+        <div class="card-box">
+          <h3 id="coTituloForm">Nova combinação</h3>
+          <input type="hidden" id="coId" />
+          <div class="form-row"><label>Nome</label><input type="text" id="coNome" placeholder="Ex: Carne moída, arroz, feijão e batata" /></div>
+          <div class="form-row"><label>Refeição (tipo)</label><select id="coTipo"></select></div>
+          <div class="form-row">
+            <label>Foto do prato montado</label>
+            <div class="foto-edit">
+              <div class="foto-preview" id="coFotoPreview">🍽️</div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+                <input type="text" id="coFoto" placeholder="URL da imagem…" />
+                <label class="btn secondary small" style="align-self:flex-start; cursor:pointer;">
+                  📷 Enviar arquivo <input type="file" id="coFotoFile" accept="image/*" class="hidden" />
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn" id="btnSalvarCombo">Salvar combinação</button>
+            <button class="btn ghost hidden" id="btnNovaCombo">Cancelar edição</button>
+          </div>
+
+          <div id="coItensBox" class="hidden" style="margin-top:16px; border-top:1px solid var(--cinza-claro); padding-top:14px;">
+            <label style="font-size:.74rem;font-weight:900;color:var(--cinza);text-transform:uppercase;letter-spacing:.06em;">Itens da combinação</label>
+            <div id="coItens" style="margin:8px 0;"></div>
+            <div class="add-item-row">
+              <input type="text" id="coAddItem" list="dlItensCombo" placeholder="Adicionar item…" />
+              <button class="btn small" id="coAddBtn">+</button>
+            </div>
+            <datalist id="dlItensCombo"></datalist>
+          </div>
+        </div>
+
+        <div class="card-box">
+          <h3>Combinações (<span id="coCount">0</span>)</h3>
+          <div class="form-row"><input type="text" id="coBusca" placeholder="🔎 Filtrar combinações…" /></div>
+          <table class="data-table"><tbody id="tbCombos"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CARDÁPIOS & ESCOLAS ===================== -->
     <section class="panel" id="panel-cardapios">
       <div class="grid-2">
         <div class="card-box">
@@ -106,7 +152,7 @@
       </div>
     </section>
 
-    <!-- ===================== PAINEL: ITENS ===================== -->
+    <!-- ===================== CATÁLOGO DE ITENS ===================== -->
     <section class="panel" id="panel-itens">
       <div class="grid-2">
         <div class="card-box">
@@ -114,19 +160,6 @@
           <input type="hidden" id="iId" />
           <div class="form-row"><label>Nome</label><input type="text" id="iNome" placeholder="Ex: Arroz integral" /></div>
           <div class="form-row"><label>Categoria</label><select id="iCategoria"></select></div>
-          <div class="form-row">
-            <label>Foto do prato</label>
-            <div class="foto-edit">
-              <div class="foto-preview" id="iFotoPreview">🍽️</div>
-              <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
-                <input type="text" id="iFoto" placeholder="URL da imagem…" />
-                <label class="btn secondary small" style="align-self:flex-start; cursor:pointer;">
-                  📷 Enviar arquivo
-                  <input type="file" id="iFotoFile" accept="image/*" class="hidden" />
-                </label>
-              </div>
-            </div>
-          </div>
           <div class="form-row"><label>Descrição (opcional)</label><textarea id="iDescricao" rows="2"></textarea></div>
           <div class="form-actions">
             <button class="btn" id="btnSalvarItem">Salvar</button>

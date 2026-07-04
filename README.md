@@ -113,6 +113,21 @@ Para habilitar as fotos (ao clicar numa refeição abre um modal com os pratos):
 3. Na apresentação, clicar numa refeição mostra as fotos dos itens; itens sem
    foto aparecem com um placeholder (emoji na cor da refeição).
 
+## Combinações (montagens reutilizáveis de refeição)
+
+Modelo: em vez de montar itens soltos todo dia, você cria **combinações**
+(ex.: "Carne moída, arroz, feijão e batata"), cada uma com **uma foto do prato
+montado**, e ao montar o dia aplica a mesma combinação em vários cardápios.
+
+1. Rode [`db/05_combinacoes.sql`](db/05_combinacoes.sql) no SQL Editor — cria as
+   tabelas `combinacoes`/`combinacao_itens`, adiciona `combinacao_id` em
+   `refeicoes`, atualiza a view e **migra automaticamente** as refeições já
+   cadastradas para combinações reutilizáveis.
+2. Em **Gerenciar → Combinações**: edite cada montagem e envie a **foto do prato**.
+3. Em **Gerenciar → Montar o dia**: escolha dia + refeição, selecione a
+   combinação e marque em quais cardápios aplicar.
+4. Na apresentação, clicar numa refeição mostra a **foto da combinação** + os itens.
+
 ## Ativar login (quando quiser proteger o painel)
 
 1. No `db/01_schema.sql`, na política **"escrita liberada"**, troque `for all using (true)`

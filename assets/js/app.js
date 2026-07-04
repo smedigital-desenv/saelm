@@ -92,38 +92,26 @@ function bindToolbar() {
 // ===========================================================================
 // MODAL de fotos dos pratos
 // ===========================================================================
-async function abrirModal(ds) {
-  const cor = ds.cor || "var(--azul)";
+function abrirModal(ds) {
+  const cor = ds.cor || "#2563eb";
+  const foto = ds.foto || "";
+  const itens = decodeURIComponent(ds.itens || "").split(",").map((s) => s.trim()).filter(Boolean);
+
   el("modalEmoji").textContent = emojiDe(ds.tipo);
   el("modalEmoji").style.background = `${cor}22`;
   el("modalTitulo").textContent = ds.tipo || "Refeição";
   el("modalSub").textContent = ds.horario || "";
-  el("modalGallery").innerHTML = `<div class="notice" style="grid-column:1/-1">Carregando pratos…</div>`;
+
+  const hero = foto
+    ? `<div class="prato-hero" style="background-image:url('${encodeURI(foto)}')"></div>`
+    : `<div class="prato-hero sem" style="background:${cor}1f;color:${cor}">${emojiDe(ds.tipo)}</div>`;
+  const chips = itens.length
+    ? `<div class="modal-itens">${itens.map((i) => `<span class="ichip" style="--chip-bg:${cor}1c; --chip-fg:${cor}">${escapeHtml(i)}</span>`).join("")}</div>`
+    : "";
+
+  el("modalGallery").innerHTML = hero + chips;
   el("modal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
-
-  // tenta com foto_url; se a coluna ainda não existir, refaz sem ela
-  let sel = "ordem, texto_livre, itens(nome, foto_url)";
-  let res = await supabase.from("refeicao_itens").select(sel).eq("refeicao_id", ds.refeicaoId).order("ordem");
-  if (res.error) {
-    res = await supabase.from("refeicao_itens").select("ordem, texto_livre, itens(nome)").eq("refeicao_id", ds.refeicaoId).order("ordem");
-  }
-  if (res.error) { el("modalGallery").innerHTML = `<div class="notice warn" style="grid-column:1/-1">${res.error.message}</div>`; return; }
-
-  const itens = (res.data || []).map((ri) => ({
-    nome: ri.itens?.nome || ri.texto_livre || "Item",
-    foto: ri.itens?.foto_url || null,
-  }));
-  el("modalGallery").innerHTML = itens.length
-    ? itens.map((it) => tilePrato(it, cor, ds.tipo)).join("")
-    : `<div class="notice" style="grid-column:1/-1">Sem itens cadastrados.</div>`;
-}
-
-function tilePrato(it, cor, tipo) {
-  const media = it.foto
-    ? `<div class="prato-foto" style="background-image:url('${encodeURI(it.foto)}')"></div>`
-    : `<div class="prato-foto sem" style="background:${cor}1f;color:${cor}">${emojiDe(tipo)}</div>`;
-  return `<div class="prato">${media}<div class="prato-nome">${escapeHtml(it.nome)}</div></div>`;
 }
 
 function fecharModal() {
@@ -386,7 +374,7 @@ function blocoRefeicao(r) {
 
 // atributos usados pelo modal ao clicar numa refeição
 function attrsModal(r) {
-  return `data-refeicao-id="${r.refeicao_id}" data-tipo="${escapeHtml(r.tipo_refeicao)}" data-cor="${r.tipo_cor}" data-horario="${escapeHtml(r.horario || "")}"`;
+  return `data-refeicao-id="${r.refeicao_id}" data-tipo="${escapeHtml(r.tipo_refeicao)}" data-cor="${r.tipo_cor}" data-horario="${escapeHtml(r.horario || "")}" data-foto="${escapeHtml(r.foto_url || "")}" data-itens="${encodeURIComponent(r.itens || "")}"`;
 }
 
 // ---------- Legenda ----------

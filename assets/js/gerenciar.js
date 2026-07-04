@@ -1,36 +1,30 @@
 // =============================================================================
-// SAELM - Painel de gerenciamento (admin)
+// SAELM - Painel de gerenciamento (admin) — modelo com Combinações
 // =============================================================================
 import { supabase, isConfigured } from "./supabaseClient.js";
 
 const el = (id) => document.getElementById(id);
 
 const state = {
-  cardapios: [],
-  escolas: [],
-  categorias: [],
-  itens: [],           // catálogo
-  tipos: [],           // tipos de refeição
-  diaRefeicoes: [],    // refeições do cardápio+dia selecionado
+  cardapios: [], escolas: [], categorias: [], itens: [], tipos: [], combinacoes: [],
+  montarRows: [],  // refeições do dia/tipo por cardápio
 };
 
-// ---------------------------------------------------------------------------
 boot();
 
 async function boot() {
   if (!isConfigured) {
     document.body.innerHTML =
       `<div class="login-wrap"><div class="card-box"><div class="logo-big">⚙️</div>
-      <h3>Configuração necessária</h3><p class="muted">Preencha <code>assets/js/config.js</code> com a URL e a chave anon do Supabase.</p></div></div>`;
+      <h3>Configuração necessária</h3><p class="muted">Preencha <code>assets/js/config.js</code>.</p></div></div>`;
     return;
   }
-
-  // Sem controle de acesso por enquanto: abre o painel direto.
   el("loginView").classList.add("hidden");
   el("appView").classList.remove("hidden");
 
   bindTabs();
-  bindRefeicoes();
+  bindMontar();
+  bindCombos();
   bindCardapios();
   bindEscolas();
   bindItens();
@@ -38,24 +32,18 @@ async function boot() {
   await carregarTudo();
 }
 
-// ---------------------------------------------------------------------------
 async function carregarTudo() {
   await Promise.all([
-    carregarCardapios(),
-    carregarEscolas(),
-    carregarCategorias(),
-    carregarItens(),
-    carregarTipos(),
+    carregarCardapios(), carregarEscolas(), carregarCategorias(),
+    carregarItens(), carregarTipos(), carregarCombinacoes(),
   ]);
-  preencherSelectsRefeicoes();
+  preencherMontar();
+  renderCombos();
   renderCardapios();
   renderEscolas();
   renderItens();
-  // seleciona primeiro cardápio + primeiro dia com dados
-  if (state.cardapios.length && !el("rData").value) {
-    el("rData").value = "2026-06-29";
-    await carregarDia();
-  }
+  if (!el("mData").value) el("mData").value = "2026-06-29";
+  await carregarMontar();
 }
 
 async function carregarCardapios() {
@@ -63,10 +51,7 @@ async function carregarCardapios() {
   state.cardapios = data || [];
 }
 async function carregarEscolas() {
-  const { data } = await supabase
-    .from("escolas")
-    .select("*, escola_cardapio(cardapio_id)")
-    .order("nome");
+  const { data } = await supabase.from("escolas").select("*, escola_cardapio(cardapio_id)").order("nome");
   state.escolas = data || [];
 }
 async function carregarCategorias() {
@@ -74,15 +59,19 @@ async function carregarCategorias() {
   state.categorias = data || [];
 }
 async function carregarItens() {
-  const { data } = await supabase
-    .from("itens")
-    .select("*, categorias_item(nome, cor)")
-    .order("nome");
+  const { data } = await supabase.from("itens").select("*, categorias_item(nome, cor)").order("nome");
   state.itens = data || [];
 }
 async function carregarTipos() {
   const { data } = await supabase.from("tipos_refeicao").select("*").order("ordem");
   state.tipos = data || [];
+}
+async function carregarCombinacoes() {
+  const { data } = await supabase
+    .from("combinacoes")
+    .select("*, tipos_refeicao(nome, cor)")
+    .order("nome");
+  state.combinacoes = data || [];
 }
 
 // ===========================================================================
@@ -99,110 +88,237 @@ function bindTabs() {
 }
 
 // ===========================================================================
-// PAINEL: REFEIÇÕES POR DIA
+// MONTAR O DIA
 // ===========================================================================
-function bindRefeicoes() {
-  el("rCardapio").addEventListener("change", carregarDia);
-  el("rData").addEventListener("change", carregarDia);
-  el("btnCopiarDia").addEventListener("click", copiarDeOutroDia);
+function bindMontar() {
+  el("mData").addEventListener("change", carregarMontar);
+  el("mTipo").addEventListener("change", () => { preencherComboSelect(); carregarMontar(); });
+  el("mTodos").addEventListener("click", () => marcarTodos(true));
+  el("mNenhum").addEventListener("click", () => marcarTodos(false));
+  el("mAplicar").addEventListener("click", aplicarCombo);
+  el("mRemover").addEventListener("click", removerDosMarcados);
 }
 
-function preencherSelectsRefeicoes() {
-  el("rCardapio").innerHTML = state.cardapios
-    .map((c) => `<option value="${c.id}">Cardápio ${c.numero} — ${esc(c.titulo)}</option>`)
-    .join("");
+function preencherMontar() {
+  el("mTipo").innerHTML = state.tipos
+    .map((t) => `<option value="${t.id}">${esc(t.nome)}</option>`).join("");
+  // tenta pré-selecionar Almoço
+  const almoco = state.tipos.find((t) => /almo/i.test(t.nome));
+  if (almoco) el("mTipo").value = almoco.id;
+  preencherComboSelect();
 }
 
-function cardapioSel() { return el("rCardapio").value; }
-function dataSel() { return el("rData").value; }
+function preencherComboSelect() {
+  const tipoId = el("mTipo").value;
+  const combos = state.combinacoes.filter((c) => !c.tipo_refeicao_id || c.tipo_refeicao_id === tipoId);
+  el("mCombo").innerHTML =
+    `<option value="">— escolha uma combinação —</option>` +
+    combos.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join("");
+}
 
-async function carregarDia() {
-  const cardapio_id = cardapioSel();
-  const data = dataSel();
-  if (!cardapio_id || !data) return;
-
+async function carregarMontar() {
+  const data = el("mData").value, tipoId = el("mTipo").value;
+  if (!data || !tipoId) return;
   const { data: rows, error } = await supabase
     .from("refeicoes")
-    .select("id, tipo_refeicao_id, observacao, facultativo, refeicao_itens(id, ordem, texto_livre, item_id, itens(nome))")
-    .eq("cardapio_id", cardapio_id)
-    .eq("data", data);
+    .select("id, cardapio_id, combinacao_id, facultativo, observacao, combinacoes(nome)")
+    .eq("data", data).eq("tipo_refeicao_id", tipoId);
   if (error) return toast(error.message, true);
-  state.diaRefeicoes = rows || [];
-  renderEditorDia();
+  state.montarRows = rows || [];
+  renderMontar();
 }
 
-function refeicaoDoTipo(tipoId) {
-  return state.diaRefeicoes.find((r) => r.tipo_refeicao_id === tipoId);
+function refeicaoDoCardapio(cardapioId) {
+  return state.montarRows.find((r) => r.cardapio_id === cardapioId);
 }
 
-function renderEditorDia() {
-  const cont = el("editorRefeicoes");
-  cont.innerHTML = state.tipos.map((t) => {
-    const r = refeicaoDoTipo(t.id);
-    const itens = (r?.refeicao_itens || []).sort((a, b) => a.ordem - b.ordem);
-    const chips = itens.map((ri) => {
-      const nome = ri.itens?.nome || ri.texto_livre || "?";
-      return `<span class="chip-item">${esc(nome)}<button title="Remover" data-rem="${ri.id}">×</button></span>`;
-    }).join("");
-    const fac = r?.facultativo ? "checked" : "";
-    return `<div class="meal-edit" data-tipo="${t.id}">
-      <div class="me-head" style="background:${t.cor}">
-        <span>${esc(t.nome)}</span>
-        <small style="opacity:.9">${esc(t.horario || "")}</small>
-      </div>
-      <div class="me-body">
-        <div class="chips">${chips || '<span class="muted" style="font-size:.82rem">sem itens</span>'}</div>
-        <div class="add-item-row">
-          <input type="text" list="dlItens" placeholder="Adicionar item…" data-add="${t.id}" />
-          <button class="btn small" data-addbtn="${t.id}">+</button>
-        </div>
-        <label class="fac-toggle"><input type="checkbox" data-fac="${t.id}" ${fac}/> Ponto facultativo / não oferecido</label>
-      </div>
-    </div>`;
+function renderMontar() {
+  el("mLista").innerHTML = state.cardapios.map((c) => {
+    const r = refeicaoDoCardapio(c.id);
+    const atual = r?.combinacoes?.nome
+      ? `<span class="tag">${esc(r.combinacoes.nome)}</span>`
+      : (r?.facultativo ? `<span class="muted">Ponto facultativo</span>` : `<span class="muted">— vazio —</span>`);
+    return `<tr>
+      <td style="width:34px;"><input type="checkbox" data-card="${c.id}" /></td>
+      <td><strong>Cardápio ${esc(c.numero)}</strong><div class="muted" style="font-size:.78rem">${esc(c.titulo)}</div></td>
+      <td>${atual}</td>
+    </tr>`;
   }).join("");
-
-  // datalist do catálogo
-  if (!el("dlItens")) {
-    const dl = document.createElement("datalist");
-    dl.id = "dlItens";
-    document.body.appendChild(dl);
-  }
-  el("dlItens").innerHTML = state.itens.map((i) => `<option value="${esc(i.nome)}">`).join("");
-
-  // eventos
-  cont.querySelectorAll("[data-rem]").forEach((b) =>
-    b.addEventListener("click", () => removerItem(b.dataset.rem)));
-  cont.querySelectorAll("[data-addbtn]").forEach((b) =>
-    b.addEventListener("click", () => {
-      const input = cont.querySelector(`[data-add="${b.dataset.addbtn}"]`);
-      adicionarItem(b.dataset.addbtn, input.value);
-      input.value = "";
-    }));
-  cont.querySelectorAll("[data-add]").forEach((inp) =>
-    inp.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { adicionarItem(inp.dataset.add, inp.value); inp.value = ""; }
-    }));
-  cont.querySelectorAll("[data-fac]").forEach((chk) =>
-    chk.addEventListener("change", () => toggleFacultativo(chk.dataset.fac, chk.checked)));
 }
 
-// garante que exista a refeição (cardapio+data+tipo) e devolve seu id
-async function getOrCreateRefeicao(tipoId) {
-  let r = refeicaoDoTipo(tipoId);
-  if (r) return r.id;
-  const { data, error } = await supabase
+function marcarTodos(v) {
+  el("mLista").querySelectorAll("[data-card]").forEach((c) => (c.checked = v));
+}
+function cardapiosMarcados() {
+  return [...el("mLista").querySelectorAll("[data-card]:checked")].map((c) => c.dataset.card);
+}
+
+async function aplicarCombo() {
+  const comboId = el("mCombo").value;
+  if (!comboId) return toast("Escolha uma combinação.", true);
+  const alvos = cardapiosMarcados();
+  if (!alvos.length) return toast("Marque ao menos um cardápio.", true);
+  const data = el("mData").value, tipoId = el("mTipo").value;
+
+  const linhas = alvos.map((cardapio_id) => ({
+    cardapio_id, tipo_refeicao_id: tipoId, data, combinacao_id: comboId, facultativo: false, observacao: null,
+  }));
+  const { error } = await supabase
     .from("refeicoes")
-    .insert({ cardapio_id: cardapioSel(), tipo_refeicao_id: tipoId, data: dataSel() })
-    .select("id")
-    .single();
-  if (error) { toast(error.message, true); return null; }
-  return data.id;
+    .upsert(linhas, { onConflict: "cardapio_id,data,tipo_refeicao_id" });
+  if (error) return toast(error.message, true);
+  toast(`Combinação aplicada em ${alvos.length} cardápio(s)`);
+  await carregarMontar();
 }
 
-// garante item no catálogo (por nome) e devolve id
+async function removerDosMarcados() {
+  const alvos = cardapiosMarcados();
+  if (!alvos.length) return toast("Marque ao menos um cardápio.", true);
+  if (!confirm("Remover esta refeição dos cardápios marcados?")) return;
+  const data = el("mData").value, tipoId = el("mTipo").value;
+  const { error } = await supabase
+    .from("refeicoes").delete()
+    .eq("data", data).eq("tipo_refeicao_id", tipoId).in("cardapio_id", alvos);
+  if (error) return toast(error.message, true);
+  toast("Refeição removida dos marcados");
+  await carregarMontar();
+}
+
+// ===========================================================================
+// COMBINAÇÕES
+// ===========================================================================
+function bindCombos() {
+  el("btnSalvarCombo").addEventListener("click", salvarCombo);
+  el("btnNovaCombo").addEventListener("click", limparFormCombo);
+  el("coBusca").addEventListener("input", renderCombos);
+  el("coFoto").addEventListener("input", () => setPreview("coFotoPreview", el("coFoto").value.trim()));
+  el("coFotoFile").addEventListener("change", (e) => enviarFoto(e, "coFoto", "coFotoPreview"));
+  el("coAddBtn").addEventListener("click", () => { adicionarItemCombo(el("coAddItem").value); el("coAddItem").value = ""; });
+  el("coAddItem").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { adicionarItemCombo(el("coAddItem").value); el("coAddItem").value = ""; }
+  });
+}
+
+function preencherTiposCombo() {
+  el("coTipo").innerHTML = `<option value="">— qualquer refeição —</option>` +
+    state.tipos.map((t) => `<option value="${t.id}">${esc(t.nome)}</option>`).join("");
+  el("dlItensCombo").innerHTML = state.itens.map((i) => `<option value="${esc(i.nome)}">`).join("");
+}
+
+function renderCombos() {
+  preencherTiposCombo();
+  const busca = (el("coBusca").value || "").toLowerCase();
+  const lista = state.combinacoes.filter((c) => c.nome.toLowerCase().includes(busca));
+  el("coCount").textContent = state.combinacoes.length;
+  el("tbCombos").innerHTML = lista.map((c) => `
+    <tr>
+      <td style="width:52px;">${c.foto_url ? `<img class="thumb" src="${esc(c.foto_url)}" alt="" loading="lazy" />` : `<span class="thumb" style="display:inline-grid;place-items:center;">🍽️</span>`}</td>
+      <td>${esc(c.nome)}${c.tipos_refeicao ? `<div class="muted" style="font-size:.75rem">${esc(c.tipos_refeicao.nome)}</div>` : ""}</td>
+      <td class="row-actions">
+        <button class="btn small secondary" data-edit-co="${c.id}">Editar</button>
+        <button class="btn small danger" data-del-co="${c.id}">Excluir</button>
+      </td>
+    </tr>`).join("");
+  el("tbCombos").querySelectorAll("[data-edit-co]").forEach((b) =>
+    b.addEventListener("click", () => editarCombo(b.dataset.editCo)));
+  el("tbCombos").querySelectorAll("[data-del-co]").forEach((b) =>
+    b.addEventListener("click", () => excluirCombo(b.dataset.delCo)));
+}
+
+function limparFormCombo() {
+  el("coId").value = ""; el("coNome").value = ""; el("coTipo").value = "";
+  el("coFoto").value = ""; setPreview("coFotoPreview", "");
+  el("coTituloForm").textContent = "Nova combinação";
+  el("btnNovaCombo").classList.add("hidden");
+  el("coItensBox").classList.add("hidden");
+  el("coItens").innerHTML = "";
+}
+
+async function editarCombo(id) {
+  const c = state.combinacoes.find((x) => x.id === id);
+  if (!c) return;
+  el("coId").value = c.id;
+  el("coNome").value = c.nome || "";
+  el("coTipo").value = c.tipo_refeicao_id || "";
+  el("coFoto").value = c.foto_url || "";
+  setPreview("coFotoPreview", c.foto_url || "");
+  el("coTituloForm").textContent = "Editar combinação";
+  el("btnNovaCombo").classList.remove("hidden");
+  el("coItensBox").classList.remove("hidden");
+  await renderComboItens(id);
+}
+
+async function salvarCombo() {
+  const payload = {
+    nome: el("coNome").value.trim(),
+    tipo_refeicao_id: el("coTipo").value || null,
+    foto_url: el("coFoto").value.trim() || null,
+  };
+  if (!payload.nome) return toast("Dê um nome à combinação.", true);
+  const id = el("coId").value;
+  const q = id
+    ? supabase.from("combinacoes").update(payload).eq("id", id).select("id").single()
+    : supabase.from("combinacoes").insert(payload).select("id").single();
+  const { data, error } = await q;
+  if (error) return toast(error.message, true);
+  toast("Combinação salva");
+  await carregarCombinacoes();
+  if (!id && data) el("coId").value = data.id;
+  el("coTituloForm").textContent = "Editar combinação";
+  el("btnNovaCombo").classList.remove("hidden");
+  el("coItensBox").classList.remove("hidden");
+  await renderComboItens(el("coId").value);
+  renderCombos();
+  preencherComboSelect();
+}
+
+async function excluirCombo(id) {
+  if (!confirm("Excluir esta combinação? As refeições que a usam ficarão vazias.")) return;
+  const { error } = await supabase.from("combinacoes").delete().eq("id", id);
+  if (error) return toast(error.message, true);
+  toast("Combinação excluída");
+  limparFormCombo();
+  await carregarCombinacoes();
+  renderCombos();
+  preencherComboSelect();
+  await carregarMontar();
+}
+
+async function renderComboItens(comboId) {
+  const { data } = await supabase
+    .from("combinacao_itens")
+    .select("id, ordem, itens(nome)")
+    .eq("combinacao_id", comboId).order("ordem");
+  el("coItens").innerHTML = (data || []).map((ci) =>
+    `<span class="chip-item">${esc(ci.itens?.nome || "?")}<button title="Remover" data-rem-ci="${ci.id}">×</button></span>`
+  ).join("") || `<span class="muted" style="font-size:.82rem">Sem itens ainda.</span>`;
+  el("coItens").querySelectorAll("[data-rem-ci]").forEach((b) =>
+    b.addEventListener("click", () => removerItemCombo(b.dataset.remCi)));
+}
+
+async function adicionarItemCombo(nome) {
+  nome = (nome || "").trim();
+  if (!nome) return;
+  const comboId = el("coId").value;
+  if (!comboId) return toast("Salve a combinação antes de adicionar itens.", true);
+  const itemId = await getOrCreateItem(nome);
+  if (!itemId) return;
+  const { data: max } = await supabase
+    .from("combinacao_itens").select("ordem").eq("combinacao_id", comboId).order("ordem", { ascending: false }).limit(1);
+  const ordem = (max && max[0] ? max[0].ordem : -1) + 1;
+  const { error } = await supabase.from("combinacao_itens").insert({ combinacao_id: comboId, item_id: itemId, ordem });
+  if (error) return toast(error.message, true);
+  await renderComboItens(comboId);
+}
+
+async function removerItemCombo(ciId) {
+  const { error } = await supabase.from("combinacao_itens").delete().eq("id", ciId);
+  if (error) return toast(error.message, true);
+  await renderComboItens(el("coId").value);
+}
+
 async function getOrCreateItem(nome) {
   nome = nome.trim();
-  if (!nome) return null;
   const existente = state.itens.find((i) => i.nome.toLowerCase() === nome.toLowerCase());
   if (existente) return existente.id;
   const { data, error } = await supabase.from("itens").insert({ nome }).select("*, categorias_item(nome,cor)").single();
@@ -211,77 +327,37 @@ async function getOrCreateItem(nome) {
   return data.id;
 }
 
-async function adicionarItem(tipoId, nome) {
-  nome = (nome || "").trim();
-  if (!nome) return;
-  const refId = await getOrCreateRefeicao(tipoId);
-  if (!refId) return;
-  const itemId = await getOrCreateItem(nome);
-  if (!itemId) return;
-  const r = refeicaoDoTipo(tipoId);
-  const ordem = ((r?.refeicao_itens || []).reduce((m, x) => Math.max(m, x.ordem), -1)) + 1;
-  const { error } = await supabase.from("refeicao_itens").insert({ refeicao_id: refId, item_id: itemId, ordem });
-  if (error) return toast(error.message, true);
-  toast("Item adicionado");
-  await carregarDia();
+// ===========================================================================
+// FOTOS (upload para o Storage) — usado pelas combinações
+// ===========================================================================
+function setPreview(previewId, url) {
+  const p = el(previewId);
+  if (url) { p.style.backgroundImage = `url('${url}')`; p.textContent = ""; }
+  else { p.style.backgroundImage = ""; p.textContent = "🍽️"; }
 }
 
-async function removerItem(riId) {
-  const { error } = await supabase.from("refeicao_itens").delete().eq("id", riId);
-  if (error) return toast(error.message, true);
-  await carregarDia();
-}
-
-async function toggleFacultativo(tipoId, valor) {
-  const refId = await getOrCreateRefeicao(tipoId);
-  if (!refId) return;
-  const { error } = await supabase
-    .from("refeicoes")
-    .update({ facultativo: valor, observacao: valor ? "Ponto facultativo" : null })
-    .eq("id", refId);
-  if (error) return toast(error.message, true);
-  toast(valor ? "Marcado como facultativo" : "Desmarcado");
-  await carregarDia();
-}
-
-async function copiarDeOutroDia() {
-  const origem = prompt("Copiar refeições de qual data? (AAAA-MM-DD)", "2026-06-29");
-  if (!origem) return;
-  const cardapio_id = cardapioSel();
-  const { data: rows } = await supabase
-    .from("refeicoes")
-    .select("tipo_refeicao_id, observacao, facultativo, refeicao_itens(item_id, texto_livre, ordem)")
-    .eq("cardapio_id", cardapio_id)
-    .eq("data", origem);
-  if (!rows || !rows.length) return toast("Nada encontrado na data de origem.", true);
-
-  for (const r of rows) {
-    const { data: nova, error } = await supabase
-      .from("refeicoes")
-      .upsert(
-        { cardapio_id, tipo_refeicao_id: r.tipo_refeicao_id, data: dataSel(), observacao: r.observacao, facultativo: r.facultativo },
-        { onConflict: "cardapio_id,data,tipo_refeicao_id" }
-      )
-      .select("id").single();
-    if (error) { toast(error.message, true); continue; }
-    await supabase.from("refeicao_itens").delete().eq("refeicao_id", nova.id);
-    const itens = (r.refeicao_itens || []).map((x) => ({
-      refeicao_id: nova.id, item_id: x.item_id, texto_livre: x.texto_livre, ordem: x.ordem,
-    }));
-    if (itens.length) await supabase.from("refeicao_itens").insert(itens);
-  }
-  toast("Dia copiado com sucesso");
-  await carregarDia();
+async function enviarFoto(e, inputId, previewId) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  toast("Enviando foto…");
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const up = await supabase.storage.from("pratos").upload(path, file, { upsert: true, contentType: file.type });
+  if (up.error) { toast("Falha no upload: " + up.error.message + " (rodou o 04_fotos.sql?)", true); return; }
+  const { data } = supabase.storage.from("pratos").getPublicUrl(path);
+  el(inputId).value = data.publicUrl;
+  setPreview(previewId, data.publicUrl);
+  toast("Foto enviada");
+  e.target.value = "";
 }
 
 // ===========================================================================
-// PAINEL: CARDÁPIOS
+// CARDÁPIOS
 // ===========================================================================
 function bindCardapios() {
   el("btnSalvarCardapio").addEventListener("click", salvarCardapio);
   el("btnNovoCardapio").addEventListener("click", limparFormCardapio);
 }
-
 function renderCardapios() {
   el("tbCardapios").innerHTML = state.cardapios.map((c) => `
     <tr>
@@ -297,17 +373,12 @@ function renderCardapios() {
   el("tbCardapios").querySelectorAll("[data-del-c]").forEach((b) =>
     b.addEventListener("click", () => excluirCardapio(b.dataset.delC)));
 }
-
 function editarCardapio(id) {
   const c = state.cardapios.find((x) => x.id === id);
   if (!c) return;
-  el("cId").value = c.id;
-  el("cNumero").value = c.numero || "";
-  el("cTitulo").value = c.titulo || "";
-  el("cPublico").value = c.publico_alvo || "";
-  el("cPercentual").value = c.percentual || "";
-  el("cOrdem").value = c.ordem ?? 0;
-  el("cObs").value = c.observacoes || "";
+  el("cId").value = c.id; el("cNumero").value = c.numero || ""; el("cTitulo").value = c.titulo || "";
+  el("cPublico").value = c.publico_alvo || ""; el("cPercentual").value = c.percentual || "";
+  el("cOrdem").value = c.ordem ?? 0; el("cObs").value = c.observacoes || "";
   el("cardTituloForm").textContent = "Editar cardápio " + c.numero;
   el("btnNovoCardapio").classList.remove("hidden");
 }
@@ -319,26 +390,20 @@ function limparFormCardapio() {
 }
 async function salvarCardapio() {
   const payload = {
-    numero: el("cNumero").value.trim(),
-    titulo: el("cTitulo").value.trim(),
-    publico_alvo: el("cPublico").value.trim() || null,
-    percentual: el("cPercentual").value.trim() || null,
-    ordem: parseInt(el("cOrdem").value) || 0,
-    observacoes: el("cObs").value.trim() || null,
+    numero: el("cNumero").value.trim(), titulo: el("cTitulo").value.trim(),
+    publico_alvo: el("cPublico").value.trim() || null, percentual: el("cPercentual").value.trim() || null,
+    ordem: parseInt(el("cOrdem").value) || 0, observacoes: el("cObs").value.trim() || null,
   };
   if (!payload.numero || !payload.titulo) return toast("Preencha número e título.", true);
   const id = el("cId").value;
-  const q = id
-    ? supabase.from("cardapios").update(payload).eq("id", id)
-    : supabase.from("cardapios").insert(payload);
-  const { error } = await q;
+  const { error } = id
+    ? await supabase.from("cardapios").update(payload).eq("id", id)
+    : await supabase.from("cardapios").insert(payload);
   if (error) return toast(error.message, true);
   toast("Cardápio salvo");
   limparFormCardapio();
   await carregarCardapios();
-  preencherSelectsRefeicoes();
-  renderCardapios();
-  renderEscolas();
+  renderCardapios(); renderEscolas(); renderMontar();
 }
 async function excluirCardapio(id) {
   if (!confirm("Excluir este cardápio e TODAS as suas refeições?")) return;
@@ -346,18 +411,16 @@ async function excluirCardapio(id) {
   if (error) return toast(error.message, true);
   toast("Cardápio excluído");
   await carregarCardapios();
-  preencherSelectsRefeicoes();
-  renderCardapios();
+  renderCardapios(); renderMontar();
 }
 
 // ===========================================================================
-// PAINEL: ESCOLAS
+// ESCOLAS
 // ===========================================================================
 function bindEscolas() {
   el("btnSalvarEscola").addEventListener("click", salvarEscola);
   el("btnNovaEscola").addEventListener("click", limparFormEscola);
 }
-
 function renderEscolas() {
   el("tbEscolas").innerHTML = state.escolas.map((e) => {
     const n = (e.escola_cardapio || []).length;
@@ -376,7 +439,6 @@ function renderEscolas() {
     b.addEventListener("click", () => excluirEscola(b.dataset.delE)));
   renderVinculos();
 }
-
 function renderVinculos() {
   const eid = el("eId").value;
   const escola = state.escolas.find((x) => x.id === eid);
@@ -390,24 +452,18 @@ function renderVinculos() {
     chk.addEventListener("change", () => toggleVinculo(eid, chk.dataset.vinc, chk.checked)));
   if (!eid) el("eVinculos").insertAdjacentHTML("afterbegin", '<div class="muted" style="font-size:.8rem">Salve a escola para vincular cardápios.</div>');
 }
-
 async function toggleVinculo(escola_id, cardapio_id, ligar) {
   if (!escola_id) return;
-  const q = ligar
-    ? supabase.from("escola_cardapio").insert({ escola_id, cardapio_id })
-    : supabase.from("escola_cardapio").delete().match({ escola_id, cardapio_id });
-  const { error } = await q;
+  const { error } = ligar
+    ? await supabase.from("escola_cardapio").insert({ escola_id, cardapio_id })
+    : await supabase.from("escola_cardapio").delete().match({ escola_id, cardapio_id });
   if (error) return toast(error.message, true);
-  await carregarEscolas();
-  renderEscolas();
+  await carregarEscolas(); renderEscolas();
 }
-
 function editarEscola(id) {
   const e = state.escolas.find((x) => x.id === id);
   if (!e) return;
-  el("eId").value = e.id;
-  el("eNome").value = e.nome || "";
-  el("eTipo").value = e.tipo || "";
+  el("eId").value = e.id; el("eNome").value = e.nome || ""; el("eTipo").value = e.tipo || "";
   el("escTituloForm").textContent = "Editar escola";
   el("btnNovaEscola").classList.remove("hidden");
   renderVinculos();
@@ -422,14 +478,13 @@ async function salvarEscola() {
   const payload = { nome: el("eNome").value.trim(), tipo: el("eTipo").value.trim() || null };
   if (!payload.nome) return toast("Informe o nome da escola.", true);
   const id = el("eId").value;
-  const q = id
-    ? supabase.from("escolas").update(payload).eq("id", id).select("id").single()
-    : supabase.from("escolas").insert(payload).select("id").single();
-  const { data, error } = await q;
+  const { data, error } = id
+    ? await supabase.from("escolas").update(payload).eq("id", id).select("id").single()
+    : await supabase.from("escolas").insert(payload).select("id").single();
   if (error) return toast(error.message, true);
   toast("Escola salva");
   await carregarEscolas();
-  if (!id && data) el("eId").value = data.id;   // permite vincular logo após criar
+  if (!id && data) el("eId").value = data.id;
   editarEscola(el("eId").value);
   renderEscolas();
 }
@@ -439,49 +494,20 @@ async function excluirEscola(id) {
   if (error) return toast(error.message, true);
   toast("Escola excluída");
   limparFormEscola();
-  await carregarEscolas();
-  renderEscolas();
+  await carregarEscolas(); renderEscolas();
 }
 
 // ===========================================================================
-// PAINEL: ITENS (catálogo)
+// CATÁLOGO DE ITENS
 // ===========================================================================
 function bindItens() {
   el("btnSalvarItem").addEventListener("click", salvarItem);
   el("btnNovoItem").addEventListener("click", limparFormItem);
   el("itBusca").addEventListener("input", renderItens);
-  el("iFoto").addEventListener("input", () => setFotoPreview(el("iFoto").value.trim()));
-  el("iFotoFile").addEventListener("change", enviarFoto);
 }
-
-function setFotoPreview(url) {
-  const p = el("iFotoPreview");
-  if (url) { p.style.backgroundImage = `url('${url}')`; p.textContent = ""; }
-  else { p.style.backgroundImage = ""; p.textContent = "🍽️"; }
-}
-
-async function enviarFoto(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  toast("Enviando foto…");
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const up = await supabase.storage.from("pratos").upload(path, file, { upsert: true, contentType: file.type });
-  if (up.error) {
-    toast("Falha no upload: " + up.error.message + " (rodou o 04_fotos.sql?)", true);
-    return;
-  }
-  const { data } = supabase.storage.from("pratos").getPublicUrl(path);
-  el("iFoto").value = data.publicUrl;
-  setFotoPreview(data.publicUrl);
-  toast("Foto enviada");
-  e.target.value = "";
-}
-
 function renderItens() {
-  const catAtual = el("iCategoria").value;  // preserva seleção do form
-  el("iCategoria").innerHTML =
-    `<option value="">— sem categoria —</option>` +
+  const catAtual = el("iCategoria").value;
+  el("iCategoria").innerHTML = `<option value="">— sem categoria —</option>` +
     state.categorias.map((c) => `<option value="${c.id}">${escHtml(c.nome)}</option>`).join("");
   el("iCategoria").value = catAtual;
   const busca = (el("itBusca").value || "").toLowerCase();
@@ -489,7 +515,6 @@ function renderItens() {
   el("itCount").textContent = state.itens.length;
   el("tbItens").innerHTML = lista.map((i) => `
     <tr>
-      <td>${i.foto_url ? `<img class="thumb" src="${escHtml(i.foto_url)}" alt="" loading="lazy" />` : ""}</td>
       <td>${escHtml(i.nome)}</td>
       <td>${i.categorias_item ? `<span class="tag" style="background:${i.categorias_item.cor}22;color:${i.categorias_item.cor}">${escHtml(i.categorias_item.nome)}</span>` : '<span class="muted">—</span>'}</td>
       <td class="row-actions">
@@ -502,22 +527,16 @@ function renderItens() {
   el("tbItens").querySelectorAll("[data-del-i]").forEach((b) =>
     b.addEventListener("click", () => excluirItem(b.dataset.delI)));
 }
-
 function editarItem(id) {
   const i = state.itens.find((x) => x.id === id);
   if (!i) return;
-  el("iId").value = i.id;
-  el("iNome").value = i.nome || "";
-  el("iCategoria").value = i.categoria_id || "";
-  el("iDescricao").value = i.descricao || "";
-  el("iFoto").value = i.foto_url || "";
-  setFotoPreview(i.foto_url || "");
+  el("iId").value = i.id; el("iNome").value = i.nome || "";
+  el("iCategoria").value = i.categoria_id || ""; el("iDescricao").value = i.descricao || "";
   el("itTituloForm").textContent = "Editar item";
   el("btnNovoItem").classList.remove("hidden");
 }
 function limparFormItem() {
   el("iId").value = ""; el("iNome").value = ""; el("iCategoria").value = ""; el("iDescricao").value = "";
-  el("iFoto").value = ""; setFotoPreview("");
   el("itTituloForm").textContent = "Novo item / preparação";
   el("btnNovoItem").classList.add("hidden");
 }
@@ -526,27 +545,23 @@ async function salvarItem() {
     nome: el("iNome").value.trim(),
     categoria_id: el("iCategoria").value || null,
     descricao: el("iDescricao").value.trim() || null,
-    foto_url: el("iFoto").value.trim() || null,
   };
   if (!payload.nome) return toast("Informe o nome do item.", true);
   const id = el("iId").value;
-  const q = id
-    ? supabase.from("itens").update(payload).eq("id", id)
-    : supabase.from("itens").insert(payload);
-  const { error } = await q;
+  const { error } = id
+    ? await supabase.from("itens").update(payload).eq("id", id)
+    : await supabase.from("itens").insert(payload);
   if (error) return toast(error.message.includes("duplicate") ? "Já existe um item com esse nome." : error.message, true);
   toast("Item salvo");
   limparFormItem();
-  await carregarItens();
-  renderItens();
+  await carregarItens(); renderItens();
 }
 async function excluirItem(id) {
   if (!confirm("Excluir este item do catálogo?")) return;
   const { error } = await supabase.from("itens").delete().eq("id", id);
   if (error) return toast(error.message, true);
   toast("Item excluído");
-  await carregarItens();
-  renderItens();
+  await carregarItens(); renderItens();
 }
 
 // ===========================================================================
@@ -557,12 +572,11 @@ function escHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
-
 let toastTimer;
 function toast(msg, err = false) {
   const t = el("toast");
   t.textContent = msg;
   t.className = "show" + (err ? " err" : "");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (t.className = ""), 2600);
+  toastTimer = setTimeout(() => (t.className = ""), 2800);
 }
