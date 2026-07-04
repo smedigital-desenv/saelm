@@ -114,8 +114,10 @@ end $$;
 
 -- -----------------------------------------------------------------------------
 -- 4) View atualizada: itens e foto vêm da combinação (fallback p/ itens soltos)
+--    (drop antes de recriar: a nova view muda a ordem/inclui colunas novas)
 -- -----------------------------------------------------------------------------
-create or replace view vw_cardapio_completo as
+drop view if exists vw_cardapio_completo;
+create view vw_cardapio_completo as
 select
   c.id            as cardapio_id,
   c.numero        as cardapio_numero,
