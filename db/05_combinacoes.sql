@@ -80,6 +80,7 @@ begin
           string_agg(coalesce(ri.item_id::text, ri.texto_livre, ''), '|' order by ri.ordem)) as sig
     from refeicoes rf
     join refeicao_itens ri on ri.refeicao_id = rf.id
+    left join itens i on i.id = ri.item_id
     group by rf.id, rf.tipo_refeicao_id
   loop
     if not exists (select 1 from _mig where sig = r.sig) then
