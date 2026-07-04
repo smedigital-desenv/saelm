@@ -450,6 +450,32 @@ function bindItens() {
   el("btnSalvarItem").addEventListener("click", salvarItem);
   el("btnNovoItem").addEventListener("click", limparFormItem);
   el("itBusca").addEventListener("input", renderItens);
+  el("iFoto").addEventListener("input", () => setFotoPreview(el("iFoto").value.trim()));
+  el("iFotoFile").addEventListener("change", enviarFoto);
+}
+
+function setFotoPreview(url) {
+  const p = el("iFotoPreview");
+  if (url) { p.style.backgroundImage = `url('${url}')`; p.textContent = ""; }
+  else { p.style.backgroundImage = ""; p.textContent = "🍽️"; }
+}
+
+async function enviarFoto(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  toast("Enviando foto…");
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const up = await supabase.storage.from("pratos").upload(path, file, { upsert: true, contentType: file.type });
+  if (up.error) {
+    toast("Falha no upload: " + up.error.message + " (rodou o 04_fotos.sql?)", true);
+    return;
+  }
+  const { data } = supabase.storage.from("pratos").getPublicUrl(path);
+  el("iFoto").value = data.publicUrl;
+  setFotoPreview(data.publicUrl);
+  toast("Foto enviada");
+  e.target.value = "";
 }
 
 function renderItens() {
@@ -463,6 +489,7 @@ function renderItens() {
   el("itCount").textContent = state.itens.length;
   el("tbItens").innerHTML = lista.map((i) => `
     <tr>
+      <td>${i.foto_url ? `<img class="thumb" src="${escHtml(i.foto_url)}" alt="" loading="lazy" />` : ""}</td>
       <td>${escHtml(i.nome)}</td>
       <td>${i.categorias_item ? `<span class="tag" style="background:${i.categorias_item.cor}22;color:${i.categorias_item.cor}">${escHtml(i.categorias_item.nome)}</span>` : '<span class="muted">—</span>'}</td>
       <td class="row-actions">
@@ -483,11 +510,14 @@ function editarItem(id) {
   el("iNome").value = i.nome || "";
   el("iCategoria").value = i.categoria_id || "";
   el("iDescricao").value = i.descricao || "";
+  el("iFoto").value = i.foto_url || "";
+  setFotoPreview(i.foto_url || "");
   el("itTituloForm").textContent = "Editar item";
   el("btnNovoItem").classList.remove("hidden");
 }
 function limparFormItem() {
   el("iId").value = ""; el("iNome").value = ""; el("iCategoria").value = ""; el("iDescricao").value = "";
+  el("iFoto").value = ""; setFotoPreview("");
   el("itTituloForm").textContent = "Novo item / preparação";
   el("btnNovoItem").classList.add("hidden");
 }
@@ -496,6 +526,7 @@ async function salvarItem() {
     nome: el("iNome").value.trim(),
     categoria_id: el("iCategoria").value || null,
     descricao: el("iDescricao").value.trim() || null,
+    foto_url: el("iFoto").value.trim() || null,
   };
   if (!payload.nome) return toast("Informe o nome do item.", true);
   const id = el("iId").value;

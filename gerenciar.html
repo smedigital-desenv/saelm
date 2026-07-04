@@ -114,6 +114,19 @@
           <input type="hidden" id="iId" />
           <div class="form-row"><label>Nome</label><input type="text" id="iNome" placeholder="Ex: Arroz integral" /></div>
           <div class="form-row"><label>Categoria</label><select id="iCategoria"></select></div>
+          <div class="form-row">
+            <label>Foto do prato</label>
+            <div class="foto-edit">
+              <div class="foto-preview" id="iFotoPreview">🍽️</div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+                <input type="text" id="iFoto" placeholder="URL da imagem…" />
+                <label class="btn secondary small" style="align-self:flex-start; cursor:pointer;">
+                  📷 Enviar arquivo
+                  <input type="file" id="iFotoFile" accept="image/*" class="hidden" />
+                </label>
+              </div>
+            </div>
+          </div>
           <div class="form-row"><label>Descrição (opcional)</label><textarea id="iDescricao" rows="2"></textarea></div>
           <div class="form-actions">
             <button class="btn" id="btnSalvarItem">Salvar</button>

@@ -64,6 +64,21 @@
     conforme orientação/autorização da DNE. · SAELM — Sistema de Apresentação de Cardápio
   </footer>
 
+  <!-- Modal de fotos dos pratos -->
+  <div id="modal" class="modal-overlay hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <button class="modal-close" id="modalClose" aria-label="Fechar">×</button>
+      <div class="modal-head">
+        <span class="emoji" id="modalEmoji">🍽️</span>
+        <div>
+          <h3 id="modalTitulo">Refeição</h3>
+          <small id="modalSub" class="muted"></small>
+        </div>
+      </div>
+      <div class="modal-gallery" id="modalGallery"></div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script src="assets/js/config.js"></script>

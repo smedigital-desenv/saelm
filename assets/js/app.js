@@ -78,6 +78,57 @@ function bindToolbar() {
   });
   el("btnImprimir").addEventListener("click", () => window.print());
   el("txtEscola").addEventListener("change", onBuscaEscola);
+
+  // Modal de fotos: delegação de clique no container de conteúdo
+  el("conteudo").addEventListener("click", (e) => {
+    const alvo = e.target.closest("[data-refeicao-id]");
+    if (alvo) abrirModal(alvo.dataset);
+  });
+  el("modalClose").addEventListener("click", fecharModal);
+  el("modal").addEventListener("click", (e) => { if (e.target.id === "modal") fecharModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharModal(); });
+}
+
+// ===========================================================================
+// MODAL de fotos dos pratos
+// ===========================================================================
+async function abrirModal(ds) {
+  const cor = ds.cor || "var(--azul)";
+  el("modalEmoji").textContent = emojiDe(ds.tipo);
+  el("modalEmoji").style.background = `${cor}22`;
+  el("modalTitulo").textContent = ds.tipo || "Refeição";
+  el("modalSub").textContent = ds.horario || "";
+  el("modalGallery").innerHTML = `<div class="notice" style="grid-column:1/-1">Carregando pratos…</div>`;
+  el("modal").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+
+  // tenta com foto_url; se a coluna ainda não existir, refaz sem ela
+  let sel = "ordem, texto_livre, itens(nome, foto_url)";
+  let res = await supabase.from("refeicao_itens").select(sel).eq("refeicao_id", ds.refeicaoId).order("ordem");
+  if (res.error) {
+    res = await supabase.from("refeicao_itens").select("ordem, texto_livre, itens(nome)").eq("refeicao_id", ds.refeicaoId).order("ordem");
+  }
+  if (res.error) { el("modalGallery").innerHTML = `<div class="notice warn" style="grid-column:1/-1">${res.error.message}</div>`; return; }
+
+  const itens = (res.data || []).map((ri) => ({
+    nome: ri.itens?.nome || ri.texto_livre || "Item",
+    foto: ri.itens?.foto_url || null,
+  }));
+  el("modalGallery").innerHTML = itens.length
+    ? itens.map((it) => tilePrato(it, cor, ds.tipo)).join("")
+    : `<div class="notice" style="grid-column:1/-1">Sem itens cadastrados.</div>`;
+}
+
+function tilePrato(it, cor, tipo) {
+  const media = it.foto
+    ? `<div class="prato-foto" style="background-image:url('${encodeURI(it.foto)}')"></div>`
+    : `<div class="prato-foto sem" style="background:${cor}1f;color:${cor}">${emojiDe(tipo)}</div>`;
+  return `<div class="prato">${media}<div class="prato-nome">${escapeHtml(it.nome)}</div></div>`;
+}
+
+function fecharModal() {
+  el("modal").classList.add("hidden");
+  document.body.style.overflow = "";
 }
 
 function setMode(m) {
@@ -224,7 +275,11 @@ function renderGrade() {
     const f = formatarData(d);
     return `<tr>
       <th><span class="dia-num">${f.dia}</span><div class="dia-semana">${f.semana}</div></th>
-      ${tipos.map((t) => `<td>${conteudoRefeicao(celula(d, t.nome))}</td>`).join("")}
+      ${tipos.map((t) => {
+        const r = celula(d, t.nome);
+        const clic = r && r.itens ? `class="clickable" ${attrsModal(r)}` : "";
+        return `<td ${clic}>${conteudoRefeicao(r)}</td>`;
+      }).join("")}
     </tr>`;
   }).join("")}</tbody>`;
 
@@ -320,12 +375,18 @@ function blocoRefeicao(r) {
   const corpo = (r.facultativo && !r.itens)
     ? `<div class="itens fac">${escapeHtml(r.observacao || "Ponto facultativo")}</div>`
     : (chips || `<div class="itens fac">${escapeHtml(r.observacao || "—")}</div>`);
-  return `<div class="meal">
+  const clic = r.itens ? `class="meal clickable" ${attrsModal(r)}` : `class="meal"`;
+  return `<div ${clic}>
     <div class="meal-title"><span class="emoji">${emojiDe(r.tipo_refeicao)}</span>
       <span style="color:${r.tipo_cor}">${escapeHtml(r.tipo_refeicao)}</span>
       ${r.horario ? `<span class="horario">· ${escapeHtml(r.horario)}</span>` : ""}</div>
     ${corpo}
   </div>`;
+}
+
+// atributos usados pelo modal ao clicar numa refeição
+function attrsModal(r) {
+  return `data-refeicao-id="${r.refeicao_id}" data-tipo="${escapeHtml(r.tipo_refeicao)}" data-cor="${r.tipo_cor}" data-horario="${escapeHtml(r.horario || "")}"`;
 }
 
 // ---------- Legenda ----------

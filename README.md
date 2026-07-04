@@ -102,6 +102,17 @@ Abra [`assets/js/config.js`](assets/js/config.js) e confira:
 | `refeicao_itens` | Itens que compõem cada refeição |
 | `vw_cardapio_completo` | View pronta para a tela pública |
 
+## Fotos dos pratos
+
+Para habilitar as fotos (ao clicar numa refeição abre um modal com os pratos):
+
+1. Rode [`db/04_fotos.sql`](db/04_fotos.sql) no SQL Editor — adiciona a coluna
+   `foto_url` no catálogo e cria o bucket público `pratos` no Storage.
+2. Em **Gerenciar → Catálogo de itens**, edite um item e envie um arquivo
+   (📷 Enviar arquivo) ou cole a URL de uma imagem.
+3. Na apresentação, clicar numa refeição mostra as fotos dos itens; itens sem
+   foto aparecem com um placeholder (emoji na cor da refeição).
+
 ## Ativar login (quando quiser proteger o painel)
 
 1. No `db/01_schema.sql`, na política **"escrita liberada"**, troque `for all using (true)`
