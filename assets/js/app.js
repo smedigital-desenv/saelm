@@ -8,6 +8,23 @@ import { supabase, isConfigured, formatarData } from "./supabaseClient.js";
 const el = (id) => document.getElementById(id);
 const cfg = window.SAELM_CONFIG || {};
 
+// Emoji por tipo de refeição (fallback 🍽️)
+const EMOJI = {
+  "Desjejum": "☕", "Colação": "🍊", "Lanche da Manhã": "🥪",
+  "Almoço": "🍛", "Leite": "🍼", "Lanche da Tarde": "🧁",
+  "Sobremesa": "🍨", "Fruta": "🍉", "Jantar": "🌙",
+};
+const emojiDe = (nome) => EMOJI[nome] || "🍽️";
+
+// Chips de alimentos coloridos pela cor do tipo de refeição
+function chipsDeItens(itensStr, cor) {
+  const itens = (itensStr || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (!itens.length) return "";
+  return `<div class="ichips">${itens
+    .map((i) => `<span class="ichip" style="--chip-bg:${cor}1c; --chip-fg:${cor}">${escapeHtml(i)}</span>`)
+    .join("")}</div>`;
+}
+
 let cardapios = [];
 let cardapioAtual = null;
 let refeicoesAtual = [];   // linhas da vw_cardapio_completo (modo cardapio)
@@ -217,9 +234,9 @@ function renderGrade() {
 function conteudoRefeicao(r) {
   if (!r) return `<span class="fac">—</span>`;
   if (r.facultativo && !r.itens) return `<span class="fac">${escapeHtml(r.observacao || "Ponto facultativo")}</span>`;
-  const itens = (r.itens || "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!itens.length) return `<span class="fac">${escapeHtml(r.observacao || "—")}</span>`;
-  return `<ul>${itens.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`;
+  const chips = chipsDeItens(r.itens, r.tipo_cor);
+  if (!chips) return `<span class="fac">${escapeHtml(r.observacao || "—")}</span>`;
+  return chips;
 }
 
 // ---------- CARDS (por dia, dentro de 1 cardápio) ----------
@@ -299,11 +316,13 @@ function renderDiaView() {
 
 // bloco visual de uma refeição (usado em cards e no modo dia)
 function blocoRefeicao(r) {
+  const chips = chipsDeItens(r.itens, r.tipo_cor);
   const corpo = (r.facultativo && !r.itens)
     ? `<div class="itens fac">${escapeHtml(r.observacao || "Ponto facultativo")}</div>`
-    : `<div class="itens">${escapeHtml(r.itens || r.observacao || "—")}</div>`;
+    : (chips || `<div class="itens fac">${escapeHtml(r.observacao || "—")}</div>`);
   return `<div class="meal">
-    <div class="meal-title"><span class="dot" style="background:${r.tipo_cor}"></span>${escapeHtml(r.tipo_refeicao)}
+    <div class="meal-title"><span class="emoji">${emojiDe(r.tipo_refeicao)}</span>
+      <span style="color:${r.tipo_cor}">${escapeHtml(r.tipo_refeicao)}</span>
       ${r.horario ? `<span class="horario">· ${escapeHtml(r.horario)}</span>` : ""}</div>
     ${corpo}
   </div>`;
@@ -313,7 +332,7 @@ function blocoRefeicao(r) {
 function renderLegendaFrom(rows) {
   const tipos = tiposDe(rows);
   el("legenda").innerHTML = tipos
-    .map((t) => `<span><span class="dot" style="background:${t.cor}"></span>${escapeHtml(t.nome)}${t.horario ? ` (${escapeHtml(t.horario)})` : ""}</span>`)
+    .map((t) => `<span>${emojiDe(t.nome)} <span class="dot" style="background:${t.cor}"></span>${escapeHtml(t.nome)}${t.horario ? ` (${escapeHtml(t.horario)})` : ""}</span>`)
     .join("");
 }
 
