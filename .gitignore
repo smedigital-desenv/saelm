@@ -1,0 +1,12 @@
+
+# ── Dados: NUNCA versionar (repositorio publico) ──────────────────────────
+# Script de carga e export carregam dado real junto. O historico do Git guarda
+# para sempre; apagar depois exige reescrita e chamado no suporte do GitHub.
+*.sql
+*.csv
+*.dump
+*.xlsx
+*.xls
+.env
+.env.*
+!.env.example
